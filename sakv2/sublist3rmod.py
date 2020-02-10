@@ -16,8 +16,6 @@ import threading
 import socket
 import json
 from collections import Counter
-#import locale
-#locale.setlocale(locale.LC_ALL,'en_US.UTF-8')
 
 # external modules
 import subbrutemod
@@ -109,7 +107,7 @@ def parse_args():
 def write_file(filename, subdomains):
     # saving subdomains results to output file
     print("%s[-] Saving results to file: %s%s%s%s" % (Y, W, R, filename, W))
-    with open(str(filename), 'wt') as f:
+    with open(str(filename), 'a+') as f:
         for subdomain in subdomains:
             f.write(subdomain + os.linesep)
 
@@ -606,7 +604,7 @@ class DNSdumpster(enumratorBaseThreaded):
     def check_host(self, host):
         is_valid = False
         Resolver = dns.resolver.Resolver()
-        Resolver.nameservers = ['8.8.8.8', '8.8.4.4']
+        Resolver.nameservers = ['1.1.1.1', '1.0.0.1']
         self.lock.acquire()
         try:
             ip = Resolver.query(host, 'A')[0].to_text()
@@ -635,11 +633,9 @@ class DNSdumpster(enumratorBaseThreaded):
         return self.get_response(resp)
 
     def get_csrftoken(self, resp):
-        #csrf_regex = re.compile("<input type='hidden' name='csrfmiddlewaretoken' value='(.*?)' />", re.S)
         rawsoup = soup(resp, 'html.parser')
-        #token = csrf_regex.findall(resp)
         csrf = rawsoup.find('input', attrs={'name':'csrfmiddlewaretoken'})
-        token = csrf['value']
+        token = csrf['value'].strip()
         return token
 
     def enumerate(self):
@@ -781,7 +777,7 @@ class CrtSearch(enumratorBaseThreaded):
         return self.subdomains
 
     def extract_domains(self, resp):
-        link_regx = re.compile('<TD>(.*?)</TD>')
+        link_regx = re.compile('<TD>(?!<A)(.*?)</TD>')
         try:
             links = link_regx.findall(resp)
             for link in links:
@@ -791,6 +787,12 @@ class CrtSearch(enumratorBaseThreaded):
 
                 if '@' in subdomain:
                     subdomain = subdomain[subdomain.find('@')+1:]
+
+                if '<BR>' in subdomain:
+                    for brlink in subdomain.split('<BR>'):
+                        if brlink not in self.subdomains and brlink != self.domain:
+                            self.subdomains.append(brlink)
+                    continue
 
                 if subdomain not in self.subdomains and subdomain != self.domain:
                     if self.verbose:
@@ -965,7 +967,22 @@ def main(domain, threads, savefile, ports, silent, verbose, enable_bruteforce, e
             if ports:
                 if not silent:
                     print(G + "[-] Start port scan now for the following ports: %s%s" % (Y, ports) + W)
-                ports = ports.split(',')
+                #ports = ports.split(',')
+                ports = re.split(r'[,;\|]', ports)
+                daX = []
+                aX = []
+                try:
+                    for x in ports:
+                        if '-' in x or '~' in x:
+                            daX.append(x)
+                            x1 = re.split(r'[\-~]', x)
+                            aX = aX + range(x1[0], x1[1])
+                    for x in daX:
+                        ports.remove(x)
+                    ports = ports+aX
+                except Exception as e:
+                    #print(e)
+                    pass 
                 pscan = portscan(subdomains, ports)
                 pscan.run()
 
@@ -982,6 +999,8 @@ def interactive():
     domain = args.domain
     threads = args.threads
     savefile = args.output
+    if savefile and domain == None:
+        savefile = domain + '.txt'
     ports = args.ports
     enable_bruteforce = args.bruteforce
     verbose = args.verbose
