@@ -1,6 +1,6 @@
 ## SAKv2
 Version: 2.0.0  
-License: GNU General Public License v2.0
+License: GNU General Public License v2.0  
 Notes: I've written my own subdomain enumerator to replace the sublist3r code I was using, has different sources and yields more results quickly.  
 
 #### About
