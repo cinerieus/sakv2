@@ -10,7 +10,7 @@ class SubEnum:
         self.sublist = []
         self.tld = tld
         self.sources = [
-                #self.VirusTotal,
+                self.VirusTotal,
                 self.HackerTarget, 
                 self.ThreatCrowd,
                 self.ThreatMiner,
@@ -30,7 +30,7 @@ class SubEnum:
                 tasks[source] = (pool.submit(s))
             pool.map(self.progress, tasks.items())
 
-        result = list(set(self.sublist))
+        result = self.inscope(list(set(self.sublist)))
         print(colored('\nTotal: '+str(len(result)), 'yellow'))
         
         if __name__ == '__main__':
@@ -46,6 +46,12 @@ class SubEnum:
         while tasks[1].done() == False:
             pass
         print(colored('[-] '+tasks[0]+' done.', 'green'))
+        
+    def inscope(self,sublist):
+        for i,v in enumerate(sublist):
+            if self.tld not in v:
+                del sublist[i]
+        return sublist
     
     def VirusTotal(self):
         try:
