@@ -8,9 +8,9 @@ verify_ssl = true
 [packages]
 shodan = "*"
 tqdm = "*"
-bs4 = "*"
 dnspython = "*"
 ipwhois = "*"
+termcolor = "*"
 
 [requires]
 python_version = "3.8"

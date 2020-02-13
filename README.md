@@ -1,7 +1,7 @@
 ## SAKv2
-Version: 1.0.0  
-Credits: [aboul3la](https://github.com/aboul3la/) - For the sublist3r/subbrute code for the modules.  
-License: GNU General Public License v2.0  
+Version: 2.0.0  
+License: GNU General Public License v2.0
+Notes: I've written my own subdomain enumerator to replace the sublist3r code I was using, has different sources and yields more results quickly. 
 
 #### About
 A subdomain enumeration and enrichment script. Enriches enumerated subdomains from a TLD or list of TLD's with ASN data and Shodan data. Also accepts a list of subdomains to add enrichment to.

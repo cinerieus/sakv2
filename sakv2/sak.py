@@ -4,16 +4,17 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import threading
 from shodan import Shodan
-import sublist3rmod 
+from subenum import SubEnum
 import dns.resolver
 from tqdm import tqdm
 import csv
 import ipwhois
 import time
+from termcolor import colored
 
 class sak:
     #class initialisation, declares instance variables and calls main()
-    def __init__(self,target,threads,asn,shodan,output,shodankey,subdomains):
+    def __init__(self,target,threads,asn,shodan,output,shodankey,subdomains,subonly):
         self.datadict = {}
         self.target = target
         self.threads = threads
@@ -22,27 +23,36 @@ class sak:
         self.output = output
         self.shodankey = shodankey
         self.subdomains = subdomains
+        self.subonly = subonly
 
     def main(self):
         try:
             #subdomain input check
             if not self.subdomains:
-                sublist = sublist3rmod.main(self.target, 40, "", ports=None, silent=None, verbose=None, enable_bruteforce=False, engines=None)
+                enum = SubEnum(self.target)
+                sublist = enum.main()
+                if self.subonly:
+                    if self.output:
+                        with open(self.output, 'w') as f:
+                            for s in sublist:
+                                f.write(s+'\n')
+                        print(colored('Results saved to: '+self.output, 'green'))
+                    return
             else:
                 sublist = self.target
                 self.target = 'N/A'
             #threading for i/o heavy tasks, fetches dns records and asn data for each asset
-            with ThreadPoolExecutor(max_workers=self.threads) as pool:
-                print('\nGetting DNS records...')
+            with ThreadPoolExecutor(max_workers=int(self.threads)) as pool:
+                print(colored('\nGetting DNS records...', 'magenta'))
                 list(tqdm(pool.map(self.getrecords, sublist), total=len(sublist)))
                 if self.asn:
-                    print('\nGetting ASN data...')
+                    print(colored('\nGetting ASN data...', 'magenta'))
                     aslist = list(self.datadict.values())
                     list(tqdm(pool.map(self.getasn, aslist), total=len(aslist)))
             #shodan option check, limited to 1 ip per second by api
             if self.shodan:
                 api = Shodan(self.shodankey)
-                print('\nGetting Shodan data...')
+                print(colored('\nGetting Shodan data...', 'magenta'))
                 for asset in tqdm(self.datadict.values()):
                     self.getshodan(api,asset)
                     time.sleep(1)
@@ -54,10 +64,12 @@ class sak:
                         w = csv.DictWriter(f, dictlist[0].keys())
                         w.writeheader()
                         w.writerows(dictlist)
+                    print(colored('Results saved to: '+self.output, 'green'))
                 else:
                     with open(self.output, 'a') as f:
                         w = csv.DictWriter(f, dictlist[0].keys())
                         w.writerows(dictlist)
+                    print(colored('Results saved to: '+self.output, 'green'))
             else:
                 dictlist = list(self.datadict.values())
                 for item in dictlist:
@@ -74,7 +86,9 @@ class sak:
         #handles getting the records for each subdomain, dns server(s) is specified below
         try:
             resolver = dns.resolver.Resolver()
-            resolver.nameservers = ['1.1.1.1']
+            resolver.nameservers = ['1.1.1.1', '1.0.0.1']
+            resolver.timeout = 3
+            resolver.lifetime = 3
             #gets A records and starts populating main dict, drops CNAME
             try: 
                 A = resolver.query(subdomain, 'A')

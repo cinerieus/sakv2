@@ -10,10 +10,11 @@ def main():
     parser._action_groups.pop()
     required = parser.add_argument_group('Required arguments (-t or -f)')
     optional = parser.add_argument_group('Optional arguments')
-    required.add_argument('-t', action='store', dest='target', help='A target TLD.')
-    required.add_argument('-f', action='store', dest='targetfile', help='A target file that contains a list of TLDs.')
+    required.add_argument('-t', action='store', dest='target', help='A target TLD or subdomain.')
+    required.add_argument('-f', action='store', dest='targetfile', help='A target file that contains a list of TLDs or subdomains.')
     required.add_argument('-o', action='store', dest='output', help='Outputs to a csv.')
     optional.add_argument('-s', action='store_true', dest='subdomains', help='Use for inputing a list of subdomains.')
+    optional.add_argument('-so', action='store_true', dest='subonly', help='If specified, will only perform subdomain enumeration.')
     optional.add_argument('-td', action='store', dest='threads', help='Specify number of threads used (defaults to 40).', default=40)
     optional.add_argument('-11', action='store_true', dest='eleven', help='Choose this option to enable all modules.')
     optional.add_argument('-as', action='store_true', dest='asn', help='This option enables the ASN data module.')
@@ -63,7 +64,7 @@ def main():
     if not args.subdomains:
         for t in target:
             try:
-                sakc = sak(t,args.threads,args.asn,args.shodan,args.output,shodankey,args.subdomains)
+                sakc = sak(t,args.threads,args.asn,args.shodan,args.output,shodankey,args.subdomains,args.subonly)
                 sakc.main()
             except Exception as e:
                 print('\nError in __main__:')
@@ -71,7 +72,7 @@ def main():
                 sys.exit(1)
     else:
         try:
-            sakc = sak(target,args.threads,args.asn,args.shodan,args.output,shodankey,args.subdomains)
+            sakc = sak(target,args.threads,args.asn,args.shodan,args.output,shodankey,args.subdomains,args.subonly)
             sakc.main()
         except Exception as e:
             print('\nError in __main__:')
