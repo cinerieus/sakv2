@@ -61,13 +61,13 @@ class sak:
                 dictlist = list(self.datadict.values())
                 if not os.path.isfile(self.output):
                     with open(self.output, 'w') as f:
-                        w = csv.DictWriter(f, dictlist[0].keys())
+                        w = csv.DictWriter(f, dictlist[1].keys())
                         w.writeheader()
                         w.writerows(dictlist)
                     print(colored('Results saved to: '+self.output, 'green'))
                 else:
                     with open(self.output, 'a') as f:
-                        w = csv.DictWriter(f, dictlist[0].keys())
+                        w = csv.DictWriter(f, dictlist[1].keys())
                         w.writerows(dictlist)
                     print(colored('Results saved to: '+self.output, 'green'))
             else:
@@ -150,6 +150,13 @@ class sak:
         #get Shodan data per IP, rate limited to 1 per second
         try:
             try:
+                taglist = [
+                        'tomcat',
+                        'fortinet',
+                        'netscaler',
+                        'pulse'
+                        ]
+
                 results = api.host(asset['ip'])
                 ports = sorted(results['ports'])
                 isp = results['isp']
@@ -170,6 +177,23 @@ class sak:
                 except:
                     vulns = ''
                     pass
+
+                for i in range(len(results['data'])):
+                    if results['data'][i]['http']['html']:
+                        html = results['data'][i]['http']['html'].lower()
+                        for t in taglist:
+                            if t in html and t not in tags:
+                                tags.append(t)
+                    if results['data'][i]['vulns']:
+                        for r in results['data'][i]['vulns'].values():
+                            try:
+                                cvss = r['cvss']
+                                if cvss == 10:
+                                    if 'possible_exploit!' not in tags:
+                                        tags.append('possible_exploit!')
+                                        break
+                            except:
+                                pass
 
             except Exception as e:
                 ports = ''
